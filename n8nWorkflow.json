@@ -1,0 +1,618 @@
+{
+  "name": "Telegram Article to YouTube Script Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "f16a31b9-87e5-4824-b5a5-cd8149ae2ad4",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -16,
+        0
+      ],
+      "webhookId": "034de7f8-5e82-42c4-ab8c-7faa296a954d",
+      "credentials": {
+        "telegramApi": {
+          "id": "l20CQfeuvkLXBvaX",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.message.text }}",
+              "rightValue": "http",
+              "operator": {
+                "type": "string",
+                "operation": "startsWith"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "96a2fdd4-e3a0-49e5-9786-c00f119e47cf",
+      "name": "Is it a Link?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        208,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "llama-3.3-70b-versatile"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [\n  {\n    \"role\": \"system\",\n    \"content\": \"You are a professional YouTube Scriptwriter.\\n\\nSTRICT MARKDOWN FORMATTING RULES (For Airtable):\\n1. Use '### ' for Section Headers (e.g., ### Hook).\\n2. Use '**' for bold text to emphasize keywords.\\n3. CRITICAL: Leave an EMPTY LINE between every single paragraph for readability.\\n\\nCONTENT RULES:\\n1. Language: STRICTLY MATCH the input language (English->English, Arabic->Arabic).\\n2. NO Audio cues like [Music], [Applause], or [Sound Effect]. Write ONLY the spoken words.\\n3. Tone: Engaging, viral-style, and energetic.\\n\\nSCRIPT STRUCTURE:\\n### Hook\\n(Grab attention in the first 5 seconds)\\n\\n### Intro\\n(Briefly introduce the topic)\\n\\n### Body\\n(The main value or story)\\n\\n### CTA\\n(Call to action)\"\n  },\n  {\n    \"role\": \"user\",\n    \"content\": `Input Data:\\n${\n      $(\"Extract Article (Official Apify)\").item.json.markdown || \n      $(\"Extract Article (Official Apify)\").item.json.text || \n      $json.message.text\n    }`\n  }\n] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1f9aa802-d1ca-42d8-a2a4-851ab39f3a4e",
+      "name": "Write Script (Groq)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        656,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "8MSE79tT2OBxp3I0",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $('Write Script (Groq)').item.json.choices[0].message.content }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "9eb5b2de-f85e-4854-9967-f716d0de4e5e",
+      "name": "Reply Script",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1904,
+        0
+      ],
+      "webhookId": "d795e5dd-29ee-4e0d-9f02-cc270c9fc7ea",
+      "credentials": {
+        "telegramApi": {
+          "id": "l20CQfeuvkLXBvaX",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/apify~website-content-crawler/run-sync-get-dataset-items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"startUrls\": [\n    {\n      \"url\": $json.message.text\n    }\n  ],\n  \"maxCrawlPages\": 1,\n  \"maxCrawlDepth\": 0,\n  \"saveMarkdown\": true,\n  \"saveHtml\": false,\n  \"saveScreenshots\": false\n} }}",
+        "options": {}
+      },
+      "id": "350c6bb7-660f-4034-aa69-b30ee55875e9",
+      "name": "Extract Article (Official Apify)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        432,
+        -64
+      ],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "YreuTQTnc63dYj5W",
+          "name": "Query Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "app7KrF9ZviexWqwL",
+          "mode": "id",
+          "cachedResultName": "Script Automation ",
+          "cachedResultUrl": "https://airtable.com/app7KrF9ZviexWqwL"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblMKgutSCYRm5bGE",
+          "mode": "id",
+          "cachedResultName": "Table 1",
+          "cachedResultUrl": "https://airtable.com/app7KrF9ZviexWqwL/tblMKgutSCYRm5bGE"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Script": "={{ $('Write Script (Groq)').item.json.choices[0].message.content }}",
+            "Status": "Generated",
+            "Topic": "={{ $node[\"Extract Article (Official Apify)\"].json.metadata.title || $node[\"Extract Article (Official Apify)\"].json.title || $('Telegram Trigger').item.json.message.text }}",
+            "source url": "={{ $('Telegram Trigger').item.json.message.text }}",
+            "Thumbnail Ideas ": "={{ $json.text }}",
+            "Twitter Thread": "={{ $('Code in JavaScript').item.json.twitter_thread }}",
+            "LinkedIn Post": "={{ $('Code in JavaScript').item.json.linkedin_post }}",
+            "SEO Tags": "={{ $('Code in JavaScript').item.json.seo_tags }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "source url",
+              "displayName": "source url",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Topic",
+              "displayName": "Topic",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Script",
+              "displayName": "Script",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "New",
+                  "value": "New"
+                },
+                {
+                  "name": "Generated",
+                  "value": "Generated"
+                },
+                {
+                  "name": "Published",
+                  "value": "Published"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Thumbnail Ideas ",
+              "displayName": "Thumbnail Ideas ",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Twitter Thread",
+              "displayName": "Twitter Thread",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "LinkedIn Post",
+              "displayName": "LinkedIn Post",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "SEO Tags",
+              "displayName": "SEO Tags",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        1680,
+        0
+      ],
+      "id": "fc92f1ed-cfae-4206-957b-9340b23ea965",
+      "name": "Create a record",
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "3H01Lk6LRongYKqT",
+          "name": "Airtable Personal Access Token account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Based on the script {{ $('Generate Viral Pack (JSON)').item.json.choices[0].message.content }} , suggest 3 viral YouTube Thumbnail ideas. Describe the visual, the text on the image, and the colors.",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1328,
+        0
+      ],
+      "id": "49ebf277-0970-4080-b056-6fbe1f2fb5d9",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1232,
+        96
+      ],
+      "id": "28122d6b-ce33-4993-9635-e2d4bfc2de98",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "kWUAunUR1apFOXvz",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "llama-3.3-70b-versatile"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [\n  {\n    \"role\": \"system\",\n    \"content\": \"You are a Social Media Manager. \\nTask: Repurpose the given YouTube Script into 3 assets.\\n\\nOUTPUT FORMAT: You must return a valid JSON object ONLY. No preamble. No text outside JSON.\\n{\\n  \\\"twitter_thread\\\": \\\"(Write a 5-tweet thread formatted with 1/5, 2/5...)\\\",\\n  \\\"linkedin_post\\\": \\\"(Write a professional, engaging post with emojis and hashtags)\\\",\\n  \\\"seo_tags\\\": \\\"(Comma separated tags, high volume keywords)\\\"\\n}\"\n  },\n  {\n    \"role\": \"user\",\n    \"content\": \"Original Script:\\n\" + $json.choices[0].message.content\n  }\n] }}"
+            },
+            {
+              "name": "response_format",
+              "value": "={{ {\"type\": \"json_object\"} }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ad01ca40-dd18-4096-af83-ed568de5fcf3",
+      "name": "Generate Viral Pack (JSON)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        880,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "8MSE79tT2OBxp3I0",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// هذا الكود يحول النص القادم من Groq إلى أعمدة حقيقية\nconst content = JSON.parse($input.item.json.choices[0].message.content);\nreturn { ...content };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        0
+      ],
+      "id": "bcf283ef-821e-4c11-aa09-96a3a7399d1b",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "content": "⚠️ **SETUP INSTRUCTIONS **\n\nBefore running this workflow, please ensure you have set up the credentials:\n1. **Telegram:** Add your Bot Token in the 'Telegram Trigger' node.\n2. **Apify:** Add your API Token in the 'Extract Article' node.\n3. **Groq:** Add your API Key in the 'Write Script' & 'Viral Pack' nodes.\n4. **Airtable:** Connect your account and ensure the Base ID/Table ID match.\n\n*Note: Double-click any node to edit its settings.*",
+        "height": 304,
+        "width": 384
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -448,
+        -352
+      ],
+      "typeVersion": 1,
+      "id": "20f9580e-99dd-47ea-9245-abdcf49c629e",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "🚀 **STEP 1: INPUT & ROUTING**\n\nThis section receives the message from the user.\n- If it's a URL -> Routes to Web Scraper.\n- If it's a Topic -> Routes directly to AI Writer.",
+        "height": 352,
+        "width": 400,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -48,
+        -160
+      ],
+      "typeVersion": 1,
+      "id": "b601c665-73a6-41de-8d6c-74c9361380ab",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "🕷️ **STEP 2: WEB SCRAPING (Apify)**\n\nUsing 'Website Content Crawler' to extract clean Markdown text.\n*Important: If the scraper fails, check if the URL is accessible.*",
+        "height": 432,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        368,
+        -240
+      ],
+      "typeVersion": 1,
+      "id": "6907c1bc-8bd8-4d71-933c-866c8d227ced",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "🧠 **STEP 3: AI GENERATION (Llama 3)**\n\n1. **Write Script:** Generates the YouTube script in Rich Text format.\n2. **Generate Viral Pack:** Creates Twitter Thread + LinkedIn Post + SEO Tags.\n\n*Tip: Edit the 'System Prompt' in these nodes to change the writing style.*",
+        "height": 400,
+        "width": 976,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        624,
+        -208
+      ],
+      "typeVersion": 1,
+      "id": "572db5f4-f2e5-46da-b9fa-3b3449570c5b",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "💾 **STEP 4: STORAGE & DELIVERY**\n\n1. **Airtable:** Saves all generated assets to your Content Dashboard.\n2. **Telegram Reply:** Sends a confirmation back to the user.",
+        "height": 352,
+        "width": 464,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1616,
+        -160
+      ],
+      "typeVersion": 1,
+      "id": "1adfa766-5670-4c56-9292-54aa6ea8a450",
+      "name": "Sticky Note4"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Is it a Link?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is it a Link?": {
+      "main": [
+        [
+          {
+            "node": "Extract Article (Official Apify)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Write Script (Groq)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Script (Groq)": {
+      "main": [
+        [
+          {
+            "node": "Generate Viral Pack (JSON)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Article (Official Apify)": {
+      "main": [
+        [
+          {
+            "node": "Write Script (Groq)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a record": {
+      "main": [
+        [
+          {
+            "node": "Reply Script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Create a record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Viral Pack (JSON)": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "b9623824-1b9d-403e-851f-bab56cb58e46",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fc629937f6a8a83c33498ae0d0a3daec88c31b04cf0bd470eae6e74bf273d982"
+  },
+  "id": "8aqo7bP1C2muhFdeyQySt",
+  "tags": []
+}
