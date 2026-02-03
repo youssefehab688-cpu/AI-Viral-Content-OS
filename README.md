@@ -82,4 +82,4 @@ Built with ❤️ by **[YoussefEhab]**
 * **Automation Specialist & Full-Stack Developer**
 * Open for Freelance work & Collaborations.
 
-[Connect on LinkedIn](YOUR_LINKEDIN_URL)!
+[Connect on LinkedIn](https://www.linkedin.com/in/youssef-ehab-086750146)!
