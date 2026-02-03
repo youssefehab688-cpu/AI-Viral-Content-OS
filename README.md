@@ -32,7 +32,7 @@ I built **Smart Content Engine**, a fully automated pipeline that acts as your p
 * **🕷️ Smart Scraping:** Uses Apify's official crawler to extract clean Markdown from any website.
 * **✍️ Viral Scripting:** Generates engaging YouTube scripts with proper formatting (Hooks, Intros, Body, CTA) using Llama 3 (via Groq).
 * **♻️ Viral Pack Generator:** Automatically repurposes the script into:
-    * A 5-tweet **Twitter Thread**.
+    * A 5-Posts **X Thread**.
     * A professional **LinkedIn Post**.
     * High-volume **SEO Tags**.
 * **💾 Centralized CMS:** Saves everything to Airtable with Rich Text formatting for easy review and editing.
