@@ -71,7 +71,7 @@ I built **Smart Content Engine**, a fully automated pipeline that acts as your p
     * Groq Cloud
     * Apify
     * Airtable (Personal Access Token)
-4.  **Configure Airtable:** Create a base with columns: `Topic`, `Source URL`, `Script` (Rich Text), `Twitter Thread`, `LinkedIn Post`, `SEO Tags`.
+4.  **Configure Airtable:** Create a base with columns: `Topic`, `Source URL`, `Script` (Rich Text), `X Thread`, `LinkedIn Post`, `SEO Tags`.
 5.  **Run:** Activate the workflow and start sending links!
 
 ---
